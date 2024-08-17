@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"/>
+    <title>Telegram Mini App Data</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        function setThemeClass() {
+            document.documentElement.className = Telegram.WebApp.colorScheme;
+        }
+
+        Telegram.WebApp.onEvent('themeChanged', setThemeClass);
+        setThemeClass();
+    </script>
+    <style>
+        .data-table {
+            width: 100%;
+            border: none;
+            margin-bottom: 20px;
+        }
+
+        .data-table thead th {
+            font-weight: bold;
+            text-align: left;
+            border: none;
+            padding: 10px 15px;
+            background: #d8d8d8;
+            font-size: 14px;
+            border-left: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+        }
+
+        .data-table tbody td {
+            text-align: left;
+            border-left: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+            padding: 10px 15px;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .data-table tbody td input {
+            width: 60px;
+        }
+
+        .data-table thead tr th:first-child, .table tbody tr td:first-child {
+            border-left: none;
+        }
+
+        .data-table thead tr th:last-child, .table tbody tr td:last-child {
+            border-right: none;
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background: #f3f3f3;
+        }
+
+        .add-button {
+            background-color: transparent;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .send-button {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<h3>Заполните таблицу</h3>
+<table border="1" id="data-table" class="data-table" style="width:40%">
+    <thead>
+    <tr>
+        <th>Объект</th>
+        <th>Глубина, мм</th>
+        <th>Ширина, мм</th>
+        <th>Высота, мм</th>
+        <th>Вес, г</th>
+        <th>Объем, литров</th>
+    </tr>
+    </thead>
+    <tbody id="table-body">
+    <!-- Строки будут создаваться динамически здесь -->
+    </tbody>
+</table>
+
+<div>
+    <button class="add-button" onclick="addRow()">+</button>
+</div>
+<div>
+    <button class="send-button" onclick="sendData()">Отправить данные</button>
+</div>
+
+<script>
+    const columns = ['name', 'depth', 'width', 'height', 'weight', 'volume'];
+
+    const translations = {
+        "car_rims": "диски автомобиля",
+        "refrigerator": "холодильник",
+        "bathtub": "ванна",
+        "passenger_car": "легковой автомобиль",
+        "microwave": "микроволновая печь",
+        "dishwasher": "посудомоечная машина",
+        "barrel": "бочка",
+        "washer": "стиральная машина",
+        "gas_stove": "газовая плита",
+        "radiator": "радиатор"
+    };
+
+    function addRow() {
+        const tableBody = document.getElementById('table-body');
+        const newRow = document.createElement('tr');
+
+        columns.forEach(column => {
+            const cell = document.createElement('td');
+            if (column === 'name') {
+                const input = document.createElement('input');
+                input.type = 'text';
+                cell.appendChild(input);
+            } else {
+                const input = document.createElement('input');
+                input.type = 'number';
+                cell.appendChild(input);
+            }
+            newRow.appendChild(cell);
+        });
+
+        tableBody.appendChild(newRow);
+    }
+
+    function sendData() {
+        const data = [];
+        const tableRows = document.querySelectorAll('#table-body tr');
+        tableRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const rowData = {};
+            cells.forEach((cell, index) => {
+                rowData[columns[index]] = ((cell.querySelector('input') || {}).value || 0.0);
+            });
+            data.push(rowData);
+        });
+
+        const tg = window.Telegram.WebApp;
+        tg.sendData(JSON.stringify(data));
+        tg.close()
+    }
+
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const dataString = urlParams.get('data');
+
+    console.log("urlParams: ", urlParams);
+    console.log("dataString: ", dataString);
+
+    // Распарсить JSON-строку в массив
+    const dataArray = dataString.split(',');
+
+    console.log("dataArray: ", dataArray);
+
+    const data = [];
+    for (let i = 0; i < dataArray.length; i += 6) {
+        var dict = {
+            "name": translations[dataArray[i]],
+            "depth": dataArray[i + 1],
+            "width": dataArray[i + 2],
+            "height": dataArray[i + 3],
+            "weight": dataArray[i + 4],
+            "volume": dataArray[i + 5]
+        };
+        data.push(dict);
+    }
+
+    console.log("data: ", data);
+    // Обновляем таблицу на основе данных
+    const tableBody = document.getElementById('table-body');
+    data.forEach(item => {
+
+        console.log("item:", item)
+        const newRow = document.createElement('tr');
+        const nameCell = document.createElement('td');
+        const depthCell = document.createElement('td');
+        const widthCell = document.createElement('td');
+        const heightCell = document.createElement('td');
+        const weightCell = document.createElement('td');
+        const volumeCell = document.createElement('td');
+
+        nameCell.textContent = item["name"];
+
+        const depthInput = document.createElement('input');
+        depthInput.type = 'number';
+        depthInput.value = item["depth"] !== -1 ? item["depth"] : '';
+        depthCell.appendChild(depthInput);
+
+        const widthInput = document.createElement('input');
+        widthInput.type = 'number';
+        widthInput.value = item["width"] !== -1 ? item["width"] : '';
+        widthCell.appendChild(widthInput);
+
+        const heightInput = document.createElement('input');
+        heightInput.type = 'number';
+        heightInput.value = item["height"] !== -1 ? item["height"] : '';
+        heightCell.appendChild(heightInput);
+
+        const weightInput = document.createElement('input');
+        weightInput.type = 'number';
+        weightInput.value = item["weight"] !== -1 ? item["weight"] : '';
+        weightCell.appendChild(weightInput);
+
+        const volumeInput = document.createElement('input');
+        volumeInput.type = 'number';
+        volumeInput.value = item["volume"] !== -1 ? item["volume"] : '';
+        volumeCell.appendChild(volumeInput);
+
+        newRow.appendChild(nameCell);
+        newRow.appendChild(depthCell);
+        newRow.appendChild(widthCell);
+        newRow.appendChild(heightCell);
+        newRow.appendChild(weightCell);
+        newRow.appendChild(volumeCell);
+
+        tableBody.appendChild(newRow);
+    });
+</script>
+</body>
+</html>
