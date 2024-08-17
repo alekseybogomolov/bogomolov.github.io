@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<!-- saved from url=(0035)https://graur.github.io/index2.html -->
-<html lang="en" class="light" style="--tg-viewport-height: 100vh; --tg-viewport-stable-height: 100vh;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"/>
     <title>Telegram Mini App Data</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
@@ -40,8 +41,8 @@
             vertical-align: top;
         }
 
-        .data-table tbody td input {
-            width: 60px;
+        .data-table tbody td input, .data-table tbody td select {
+            width: 100%;
         }
 
         .data-table thead tr th:first-child, .table tbody tr td:first-child {
@@ -70,15 +71,17 @@
     </style>
 </head>
 <body>
-<h3>Заполните таблицу</h3>
-<table border="1" id="data-table" class="data-table" style="width:30%">
+<h3>Заполните таблицу,  обязательно размеры (для бочек и водонагревателей, указываем только объем) </h3>
+<table border="1" id="data-table" class="data-table" style="width:100%">
     <thead>
     <tr>
         <th>Объект</th>
-        <th>Глубина, мм</th>
-        <th>Ширина, мм</th>
-        <th>Высота, мм</th>
-        <th>Вес, г</th>
+        <th>Глубина, см</th>
+        <th>Ширина, см</th>
+        <th>Высота, см</th>
+        <th>Вес, кг</th>
+        <th>Объем, литров</th>
+        <th>Действие</th>
     </tr>
     </thead>
     <tbody id="table-body">
@@ -94,7 +97,7 @@
 </div>
 
 <script>
-    const columns = ['name', 'depth', 'width', 'height', 'weight'];
+    const columns = ['name', 'depth', 'width', 'height', 'weight', 'volume'];
 
     const translations = {
         "car_rims": "диски автомобиля",
@@ -109,6 +112,11 @@
         "radiator": "радиатор",
         "ZIL": "ЗИЛ"
     };
+
+    function calculateVolume(depth, width, height) {
+        return (depth * width * height) / 1000000; // Convert to liters
+    }
+
     function addRow() {
         const tableBody = document.getElementById('table-body');
         const newRow = document.createElement('tr');
@@ -116,28 +124,48 @@
         columns.forEach(column => {
             const cell = document.createElement('td');
             if (column === 'name') {
-                const input = document.createElement('input');
-                input.type = 'text';
-                cell.appendChild(input);
+                const select = document.createElement('select');
+                Object.keys(translations).forEach(key => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = translations[key];
+                    select.appendChild(option);
+                });
+                cell.appendChild(select);
             } else {
                 const input = document.createElement('input');
-                input.type = 'number';
+                input.type = column === 'volume' ? 'text' : 'number';
+                if (column === 'volume') {
+                    input.disabled = true; // Disable volume input
+                }
                 cell.appendChild(input);
             }
             newRow.appendChild(cell);
         });
-       
-        // Добавляем кнопку удаления строки
-        const deleteCell = document.createElement('td');
+
+        // Добавление кнопки удаления
+        const actionCell = document.createElement('td');
         const deleteButton = document.createElement('button');
         deleteButton.textContent = '-';
-        deleteButton.onclick = function() {
-            tableBody.removeChild(newRow); // Удаляем строку из таблицы
+        deleteButton.onclick = function () {
+            tableBody.removeChild(newRow); // Удаление строки из таблицы
         };
-        deleteCell.appendChild(deleteButton);
-        newRow.appendChild(deleteCell);
-        
+        actionCell.appendChild(deleteButton);
+        newRow.appendChild(actionCell);
+
         tableBody.appendChild(newRow);
+
+        // Add event listeners for volume calculation
+        newRow.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', function() {
+                const cells = newRow.querySelectorAll('td');
+                const depth = cells[1].querySelector('input').value || 0;
+                const width = cells[2].querySelector('input').value || 0;
+                const height = cells[3].querySelector('input').value || 0;
+                const volumeCell = cells[5].querySelector('input');
+                volumeCell.value = calculateVolume(depth, width, height).toFixed(2);
+            });
+        });
     }
 
     function sendData() {
@@ -147,10 +175,9 @@
             const cells = row.querySelectorAll('td');
             const rowData = {};
             cells.forEach((cell, index) => {
-                if (index > 0 && index < 5) {
-                    rowData[columns[index]] = ((cell.querySelector('input') || {}).value || 0.0);
-                } else if (index === 0) {
-                    rowData[columns[index]] = cell.textContent;
+                if (index < columns.length) {
+                    const input = cell.querySelector('input, select');
+                    rowData[columns[index]] = input ? input.value : '';
                 }
             });
             data.push(rowData);
@@ -158,96 +185,86 @@
 
         const tg = window.Telegram.WebApp;
         tg.sendData(JSON.stringify(data));
-        tg.close()
+        tg.close();
     }
 
+    // Пример загрузки данных из строки запроса
     const queryString = window.location.search;
     const urlParams = new URLSearchParams(queryString);
     const dataString = urlParams.get('data');
 
-    console.log("urlParams: ", urlParams);
-    console.log("dataString: ", dataString);
+    if (dataString) {
+        const dataArray = dataString.split(',');
 
-    // Распарсить JSON-строку в массив
-    const dataArray = dataString.split(',');
+        const data = [];
+        for (let i = 0; i < dataArray.length; i += 6) {
+            const dict = {
+                "name": translations[dataArray[i]],
+                "depth": dataArray[i + 1],
+                "width": dataArray[i + 2],
+                "height": dataArray[i + 3],
+                "weight": dataArray[i + 4],
+                "volume": dataArray[i + 5]
+            };
+            data.push(dict);
+        }
 
-    console.log("dataArray: ", dataArray);
-    //const russianNames = dataArray.map(name => translations[name]);
+        // Обновление таблицы на основе данных
+        const tableBody = document.getElementById('table-body');
+        data.forEach(item => {
+            const newRow = document.createElement('tr');
+            columns.forEach(column => {
+                const cell = document.createElement('td');
+                if (column === 'name') {
+                    const select = document.createElement('select');
+                    Object.keys(translations).forEach(key => {
+                        const option = document.createElement('option');
+                        option.value = key;
+                        option.textContent = translations[key];
+                        if (translations[key] === item[column]) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                    cell.appendChild(select);
+                } else {
+                    const input = document.createElement('input');
+                    input.type = column === 'volume' ? 'text' : 'number';
+                    input.value = item[column] !== -1 ? item[column] : '';
+                    if (column === 'volume') {
+                        input.disabled = true; // Disable volume input
+                    }
+                    cell.appendChild(input);
+                }
+                newRow.appendChild(cell);
+            });
 
-    //console.log("russianNames: ", russianNames);
+            // Add event listeners for volume calculation
+            newRow.querySelectorAll('input[type="number"]').forEach(input => {
+                input.addEventListener('input', function() {
+                    const cells = newRow.querySelectorAll('td');
+                    const depth = cells[1].querySelector('input').value || 0;
+                    const width = cells[2].querySelector('input').value || 0;
+                    const height = cells[3].querySelector('input').value || 0;
+                    const volumeCell = cells[5].querySelector('input');
+                    volumeCell.value = calculateVolume(depth, width, height).toFixed(2);
+                });
+            });
 
-    // Проход по массиву и добавление каждого элемента в data
-    const data = [];
-    for (let i = 0; i < dataArray.length; i+=5) {
-        var dict = {
-          "name": translations[dataArray[i]],
-          "depth": dataArray[i + 1],
-          "width": dataArray[i + 2],
-          "height": dataArray[i + 3],
-          "weight": dataArray[i + 4],
-        };
-        data.push(dict);
+            // Добавление кнопки удаления
+            const actionCell = document.createElement('td');
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = '-';
+            deleteButton.onclick = function () {
+                tableBody.removeChild(newRow);
+            };
+            actionCell.appendChild(deleteButton);
+            newRow.appendChild(actionCell);
+
+            tableBody.appendChild(newRow);
+        });
     }
 
-    console.log("data: ", data);
-    // Обновляем таблицу на основе данных
-    const tableBody = document.getElementById('table-body');
-    data.forEach(item => {
-
-        console.log("item:", item)
-        const newRow = document.createElement('tr');
-        const nameCell = document.createElement('td');
-        const depthCell = document.createElement('td');
-        const widthCell = document.createElement('td');
-        const heightCell = document.createElement('td');
-        const weightCell = document.createElement('td');
-        const actionCell = document.createElement('td');
-        
-        nameCell.textContent = item["name"];
-        // const nameInput = document.createElement('input');
-        // nameInput.type = 'text';
-        // nameInput.value = item["name"];
-        // nameCell.appendChild(nameInput);
-
-        const depthInput = document.createElement('input');
-        depthInput.type = 'number';
-        depthInput.value = item["depth"] !== -1 ? item["depth"] : '';
-        depthCell.appendChild(depthInput);
-
-        const widthInput = document.createElement('input');
-        widthInput.type = 'number';
-        widthInput.value = item["width"] !== -1 ? item["width"] : '';
-        widthCell.appendChild(widthInput);
-
-        const heightInput = document.createElement('input');
-        heightInput.type = 'number';
-        heightInput.value = item["height"] !== -1 ? item["height"] : '';
-        heightCell.appendChild(heightInput);
-
-        const weightInput = document.createElement('input');
-        weightInput.type = 'number';
-        weightInput.value = item["weight"] !== -1 ? item["weight"] : '';
-        weightCell.appendChild(weightInput);
-        
-        // Создаем кнопку удаления
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = '-';
-        deleteButton.onclick = function() {
-            tableBody.removeChild(newRow); // Удаляем строку из таблицы
-        };
-        actionCell.appendChild(deleteButton);
-
-        newRow.appendChild(nameCell);
-        newRow.appendChild(depthCell);
-        newRow.appendChild(widthCell);
-        newRow.appendChild(heightCell);
-        newRow.appendChild(weightCell);
-        newRow.appendChild(actionCell);
-
-        tableBody.appendChild(newRow);
-    });
 </script>
-
-
-    
-</body></html>
+</body>
+</html>
