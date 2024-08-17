@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"/>
+<!-- saved from url=(0035)https://graur.github.io/index2.html -->
+<html lang="en" class="light" style="--tg-viewport-height: 100vh; --tg-viewport-stable-height: 100vh;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
     <title>Telegram Mini App Data</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
@@ -107,7 +106,8 @@
         "barrel": "бочка",
         "washer": "стиральная машина",
         "gas_stove": "газовая плита",
-        "radiator": "радиатор"
+        "radiator": "радиатор",
+        "ZIL": "ЗИЛ"
     };
     function addRow() {
         const tableBody = document.getElementById('table-body');
@@ -126,7 +126,17 @@
             }
             newRow.appendChild(cell);
         });
-
+       
+        // Добавляем кнопку удаления строки
+        const deleteCell = document.createElement('td');
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = '-';
+        deleteButton.onclick = function() {
+            tableBody.removeChild(newRow); // Удаляем строку из таблицы
+        };
+        deleteCell.appendChild(deleteButton);
+        newRow.appendChild(deleteCell);
+        
         tableBody.appendChild(newRow);
     }
 
@@ -137,9 +147,9 @@
             const cells = row.querySelectorAll('td');
             const rowData = {};
             cells.forEach((cell, index) => {
-                if (index < 2) {
+                if (index > 0 && index < 5) {
                     rowData[columns[index]] = ((cell.querySelector('input') || {}).value || 0.0);
-                } else {
+                } else if (index === 0) {
                     rowData[columns[index]] = cell.textContent;
                 }
             });
@@ -192,7 +202,7 @@
         const heightCell = document.createElement('td');
         const weightCell = document.createElement('td');
         const actionCell = document.createElement('td');
-
+        
         nameCell.textContent = item["name"];
         // const nameInput = document.createElement('input');
         // nameInput.type = 'text';
@@ -218,7 +228,7 @@
         weightInput.type = 'number';
         weightInput.value = item["weight"] !== -1 ? item["weight"] : '';
         weightCell.appendChild(weightInput);
-
+        
         // Создаем кнопку удаления
         const deleteButton = document.createElement('button');
         deleteButton.textContent = '-';
@@ -232,9 +242,12 @@
         newRow.appendChild(widthCell);
         newRow.appendChild(heightCell);
         newRow.appendChild(weightCell);
+        newRow.appendChild(actionCell);
 
         tableBody.appendChild(newRow);
     });
 </script>
-</body>
-</html>
+
+
+    
+</body></html>
