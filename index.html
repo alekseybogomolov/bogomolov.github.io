@@ -72,7 +72,7 @@
 </head>
 <body>
 <h3>Заполните таблицу</h3>
-<table border="1" id="data-table" class="data-table" style="width:40%">
+<table border="1" id="data-table" class="data-table" style="width:30%">
     <thead>
     <tr>
         <th>Объект</th>
@@ -80,7 +80,6 @@
         <th>Ширина, мм</th>
         <th>Высота, мм</th>
         <th>Вес, г</th>
-        <th>Объем, литров</th>
     </tr>
     </thead>
     <tbody id="table-body">
@@ -96,7 +95,7 @@
 </div>
 
 <script>
-    const columns = ['name', 'depth', 'width', 'height', 'weight', 'volume'];
+    const columns = ['name', 'depth', 'width', 'height', 'weight'];
 
     const translations = {
         "car_rims": "диски автомобиля",
@@ -110,7 +109,6 @@
         "gas_stove": "газовая плита",
         "radiator": "радиатор"
     };
-
     function addRow() {
         const tableBody = document.getElementById('table-body');
         const newRow = document.createElement('tr');
@@ -139,7 +137,11 @@
             const cells = row.querySelectorAll('td');
             const rowData = {};
             cells.forEach((cell, index) => {
-                rowData[columns[index]] = ((cell.querySelector('input') || {}).value || 0.0);
+                if (index < 2) {
+                    rowData[columns[index]] = ((cell.querySelector('input') || {}).value || 0.0);
+                } else {
+                    rowData[columns[index]] = cell.textContent;
+                }
             });
             data.push(rowData);
         });
@@ -160,16 +162,19 @@
     const dataArray = dataString.split(',');
 
     console.log("dataArray: ", dataArray);
+    //const russianNames = dataArray.map(name => translations[name]);
 
+    //console.log("russianNames: ", russianNames);
+
+    // Проход по массиву и добавление каждого элемента в data
     const data = [];
-    for (let i = 0; i < dataArray.length; i += 6) {
+    for (let i = 0; i < dataArray.length; i+=5) {
         var dict = {
-            "name": translations[dataArray[i]],
-            "depth": dataArray[i + 1],
-            "width": dataArray[i + 2],
-            "height": dataArray[i + 3],
-            "weight": dataArray[i + 4],
-            "volume": dataArray[i + 5]
+          "name": translations[dataArray[i]],
+          "depth": dataArray[i + 1],
+          "width": dataArray[i + 2],
+          "height": dataArray[i + 3],
+          "weight": dataArray[i + 4],
         };
         data.push(dict);
     }
@@ -186,9 +191,13 @@
         const widthCell = document.createElement('td');
         const heightCell = document.createElement('td');
         const weightCell = document.createElement('td');
-        const volumeCell = document.createElement('td');
+        const actionCell = document.createElement('td');
 
         nameCell.textContent = item["name"];
+        // const nameInput = document.createElement('input');
+        // nameInput.type = 'text';
+        // nameInput.value = item["name"];
+        // nameCell.appendChild(nameInput);
 
         const depthInput = document.createElement('input');
         depthInput.type = 'number';
@@ -210,20 +219,23 @@
         weightInput.value = item["weight"] !== -1 ? item["weight"] : '';
         weightCell.appendChild(weightInput);
 
-        const volumeInput = document.createElement('input');
-        volumeInput.type = 'number';
-        volumeInput.value = item["volume"] !== -1 ? item["volume"] : '';
-        volumeCell.appendChild(volumeInput);
+        // Создаем кнопку удаления
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = '-';
+        deleteButton.onclick = function() {
+            tableBody.removeChild(newRow); // Удаляем строку из таблицы
+        };
+        actionCell.appendChild(deleteButton);
 
         newRow.appendChild(nameCell);
         newRow.appendChild(depthCell);
         newRow.appendChild(widthCell);
         newRow.appendChild(heightCell);
         newRow.appendChild(weightCell);
-        newRow.appendChild(volumeCell);
 
         tableBody.appendChild(newRow);
     });
 </script>
 </body>
 </html>
+
