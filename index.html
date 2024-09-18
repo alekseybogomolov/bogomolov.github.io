@@ -2,24 +2,42 @@
 <html lang="en" class="light" style="--tg-viewport-height: 100vh; --tg-viewport-stable-height: 100vh;">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no">
     <title>Telegram Mini App Data</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         function setThemeClass() {
             document.documentElement.className = Telegram.WebApp.colorScheme;
         }
-
         Telegram.WebApp.onEvent('themeChanged', setThemeClass);
         setThemeClass();
     </script>
     <style>
-        /* Your existing CSS styles */
-        /* ... */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .data-table th {
+            background: #f4f4f4;
+            text-align: left;
+        }
+        .add-button, .send-button {
+            margin: 10px;
+            padding: 10px;
+            cursor: pointer;
+        }
+        .send-button {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-<h3>Заполните таблицу (для водонагревателей, бочек, садовых тачек, указывается только объем)</h3>
+<h3>Заполните таблицу (для водонагревателей, бочек, садовых тачек указывайте только объем)</h3>
 <table border="1" id="data-table" class="data-table" style="width:40%">
     <thead>
     <tr>
@@ -29,15 +47,16 @@
         <th>Высота, cм</th>
         <th>Вес, кг</th>
         <th>Объем, литров</th>
+        <th>Действия</th>
     </tr>
     </thead>
     <tbody id="table-body">
-    <!-- Rows will be dynamically added here -->
+    <!-- Строки будут создаваться динамически здесь -->
     </tbody>
 </table>
 
 <div>
-    <button class="add-button" onclick="addRow()">+</button>
+    <button class="add-button" onclick="addRow()">Добавить строку</button>
 </div>
 <div>
     <button class="send-button" onclick="sendData()">Отправить данные</button>
@@ -62,7 +81,7 @@
         { "value": "waterheater", "label": "водонагреватель" }
     ];
 
-    function addRow() {
+    function addRow(data = {}) {
         const tableBody = document.getElementById('table-body');
         const newRow = document.createElement('tr');
 
@@ -74,18 +93,22 @@
                     const opt = document.createElement('option');
                     opt.value = option.value;
                     opt.text = option.label;
+                    if (option.value === data[column]) {
+                        opt.selected = true;
+                    }
                     select.appendChild(opt);
                 });
                 cell.appendChild(select);
             } else {
                 const input = document.createElement('input');
                 input.type = 'number';
+                input.value = data[column] || '';
                 cell.appendChild(input);
             }
             newRow.appendChild(cell);
         });
 
-        // Add delete button
+        // Добавление кнопки удаления строки
         const deleteCell = document.createElement('td');
         const deleteButton = document.createElement('button');
         deleteButton.textContent = '-';
@@ -106,12 +129,13 @@
             const rowData = {};
             cells.forEach((cell, index) => {
                 if (index === 0) {
-                    // Name column with select element
+                    // Колонка с именем (select)
                     const select = cell.querySelector('select');
                     rowData[columns[index]] = select ? select.value : '';
                 } else if (index > 0 && index < columns.length) {
+                    // Остальные колонки (input)
                     const input = cell.querySelector('input');
-                    rowData[columns[index]] = input ? (input.value || 0.0) : 0.0;
+                    rowData[columns[index]] = input ? (input.value || 0) : 0;
                 }
             });
             data.push(rowData);
@@ -122,66 +146,50 @@
         tg.close();
     }
 
-    // Parse data from URL
+    // Разбор данных из URL
     const queryString = window.location.search;
     const urlParams = new URLSearchParams(queryString);
     const dataString = urlParams.get('data');
 
-    const dataArray = dataString.split(',');
+    if (dataString) {
+        const dataArray = dataString.split(',');
 
-    const data = [];
-    for (let i = 0; i < dataArray.length; i+=6) {
-        var dict = {
-            "name": dataArray[i],
-            "depth": dataArray[i + 1],
-            "width": dataArray[i + 2],
-            "height": dataArray[i + 3],
-            "weight": dataArray[i + 4],
-            "volume": dataArray[i + 5]
-        };
-        data.push(dict);
-    }
+        const data = [];
 
-    // Populate the table
-    const tableBody = document.getElementById('table-body');
-    data.forEach(item => {
-        const newRow = document.createElement('tr');
-
-        columns.forEach(column => {
-            const cell = document.createElement('td');
-            if (column === 'name') {
-                const select = document.createElement('select');
-                classOptions.forEach(option => {
-                    const opt = document.createElement('option');
-                    opt.value = option.value;
-                    opt.text = option.label;
-                    if (option.value === item[column]) {
-                        opt.selected = true;
-                    }
-                    select.appendChild(opt);
-                });
-                cell.appendChild(select);
-            } else {
-                const input = document.createElement('input');
-                input.type = 'number';
-                input.value = item[column] !== -1 ? item[column] : '';
-                cell.appendChild(input);
+        // Проверяем, содержит ли массив только имена объектов
+        if (dataArray.length > 0 && dataArray.every(item => !item.includes('='))) {
+            // Если передан только список имен
+            dataArray.forEach(name => {
+                var dict = {
+                    "name": name,
+                    "depth": '',
+                    "width": '',
+                    "height": '',
+                    "weight": '',
+                    "volume": ''
+                };
+                data.push(dict);
+            });
+        } else {
+            // Если переданы полные данные по 6 элементов
+            for (let i = 0; i < dataArray.length; i += 6) {
+                var dict = {
+                    "name": dataArray[i],
+                    "depth": dataArray[i + 1],
+                    "width": dataArray[i + 2],
+                    "height": dataArray[i + 3],
+                    "weight": dataArray[i + 4],
+                    "volume": dataArray[i + 5]
+                };
+                data.push(dict);
             }
-            newRow.appendChild(cell);
+        }
+
+        // Заполняем таблицу
+        data.forEach(item => {
+            addRow(item);
         });
-
-        // Add delete button
-        const actionCell = document.createElement('td');
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = '-';
-        deleteButton.onclick = function() {
-            tableBody.removeChild(newRow);
-        };
-        actionCell.appendChild(deleteButton);
-        newRow.appendChild(actionCell);
-
-        tableBody.appendChild(newRow);
-    });
+    }
 </script>
 
 </body>
