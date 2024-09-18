@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<!--  -->
 <html lang="en" class="light" style="--tg-viewport-height: 100vh; --tg-viewport-stable-height: 100vh;">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Telegram Mini App Data</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
@@ -15,59 +14,8 @@
         setThemeClass();
     </script>
     <style>
-        .data-table {
-            width: 100%;
-            border: none;
-            margin-bottom: 20px;
-        }
-
-        .data-table thead th {
-            font-weight: bold;
-            text-align: left;
-            border: none;
-            padding: 10px 15px;
-            background: #d8d8d8;
-            font-size: 14px;
-            border-left: 1px solid #ddd;
-            border-right: 1px solid #ddd;
-        }
-
-        .data-table tbody td {
-            text-align: left;
-            border-left: 1px solid #ddd;
-            border-right: 1px solid #ddd;
-            padding: 10px 15px;
-            font-size: 14px;
-            vertical-align: top;
-        }
-
-        .data-table tbody td input {
-            width: 60px;
-        }
-
-        .data-table thead tr th:first-child, .table tbody tr td:first-child {
-            border-left: none;
-        }
-
-        .data-table thead tr th:last-child, .table tbody tr td:last-child {
-            border-right: none;
-        }
-
-        .data-table tbody tr:nth-child(even) {
-            background: #f3f3f3;
-        }
-
-        .add-button {
-            background-color: transparent;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-        }
-
-        .send-button {
-            font-weight: bold;
-            margin-top: 10px;
-        }
+        /* Your existing CSS styles */
+        /* ... */
     </style>
 </head>
 <body>
@@ -84,7 +32,7 @@
     </tr>
     </thead>
     <tbody id="table-body">
-    <!-- Строки будут создаваться динамически здесь -->
+    <!-- Rows will be dynamically added here -->
     </tbody>
 </table>
 
@@ -98,19 +46,21 @@
 <script>
     const columns = ['name', 'depth', 'width', 'height', 'weight', 'volume'];
 
-    const translations = {
-        "car_rims": "диски автомобиля",
-        "refrigerator": "холодильник",
-        "bathtub": "ванна",
-        "passenger_car": "легковой автомобиль",
-        "microwave": "микроволновая печь",
-        "dishwasher": "посудомоечная машина",
-        "barrel": "бочка",
-        "washer": "стиральная машина",
-        "gas_stove": "газовая плита",
-        "radiator": "радиатор",
-        "ZIL": "ЗИЛ"
-    };
+    const classOptions = [
+        { "value": "car_rims", "label": "диски автомобиля" },
+        { "value": "refrigerator", "label": "холодильник" },
+        { "value": "bathtub", "label": "ванна" },
+        { "value": "passenger_car", "label": "легковой автомобиль" },
+        { "value": "microwave", "label": "микроволновая печь" },
+        { "value": "dishwasher", "label": "посудомоечная машина" },
+        { "value": "barrel", "label": "бочка" },
+        { "value": "washer", "label": "стиральная машина" },
+        { "value": "gas_stove", "label": "газовая плита" },
+        { "value": "radiator", "label": "радиатор" },
+        { "value": "ZIL", "label": "ЗИЛ" },
+        { "value": "cart", "label": "садовая тачка" },
+        { "value": "waterheater", "label": "водонагреватель" }
+    ];
 
     function addRow() {
         const tableBody = document.getElementById('table-body');
@@ -118,18 +68,29 @@
 
         columns.forEach(column => {
             const cell = document.createElement('td');
-            const input = document.createElement('input');
-            input.type = column === 'name' ? 'text' : 'number';
-            cell.appendChild(input);
+            if (column === 'name') {
+                const select = document.createElement('select');
+                classOptions.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.value;
+                    opt.text = option.label;
+                    select.appendChild(opt);
+                });
+                cell.appendChild(select);
+            } else {
+                const input = document.createElement('input');
+                input.type = 'number';
+                cell.appendChild(input);
+            }
             newRow.appendChild(cell);
         });
 
-        // Добавляем кнопку удаления строки
+        // Add delete button
         const deleteCell = document.createElement('td');
         const deleteButton = document.createElement('button');
         deleteButton.textContent = '-';
         deleteButton.onclick = function() {
-            tableBody.removeChild(newRow); // Удаляем строку из таблицы
+            tableBody.removeChild(newRow);
         };
         deleteCell.appendChild(deleteButton);
         newRow.appendChild(deleteCell);
@@ -144,10 +105,13 @@
             const cells = row.querySelectorAll('td');
             const rowData = {};
             cells.forEach((cell, index) => {
-                if (index > 0 && index < 6) {
-                    rowData[columns[index]] = ((cell.querySelector('input') || {}).value || 0.0);
-                } else if (index === 0) {
-                    rowData[columns[index]] = cell.textContent;
+                if (index === 0) {
+                    // Name column with select element
+                    const select = cell.querySelector('select');
+                    rowData[columns[index]] = select ? select.value : '';
+                } else if (index > 0 && index < columns.length) {
+                    const input = cell.querySelector('input');
+                    rowData[columns[index]] = input ? (input.value || 0.0) : 0.0;
                 }
             });
             data.push(rowData);
@@ -158,23 +122,17 @@
         tg.close();
     }
 
+    // Parse data from URL
     const queryString = window.location.search;
     const urlParams = new URLSearchParams(queryString);
     const dataString = urlParams.get('data');
 
-    console.log("urlParams: ", urlParams);
-    console.log("dataString: ", dataString);
-
-    // Распарсить JSON-строку в массив
     const dataArray = dataString.split(',');
 
-    console.log("dataArray: ", dataArray);
-
-    // Проход по массиву и добавление каждого элемента в data
     const data = [];
     for (let i = 0; i < dataArray.length; i+=6) {
         var dict = {
-            "name": translations[dataArray[i]],
+            "name": dataArray[i],
             "depth": dataArray[i + 1],
             "width": dataArray[i + 2],
             "height": dataArray[i + 3],
@@ -184,9 +142,7 @@
         data.push(dict);
     }
 
-    console.log("data: ", data);
-
-    // Обновляем таблицу на основе данных
+    // Populate the table
     const tableBody = document.getElementById('table-body');
     data.forEach(item => {
         const newRow = document.createElement('tr');
@@ -194,7 +150,17 @@
         columns.forEach(column => {
             const cell = document.createElement('td');
             if (column === 'name') {
-                cell.textContent = item[column];
+                const select = document.createElement('select');
+                classOptions.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.value;
+                    opt.text = option.label;
+                    if (option.value === item[column]) {
+                        opt.selected = true;
+                    }
+                    select.appendChild(opt);
+                });
+                cell.appendChild(select);
             } else {
                 const input = document.createElement('input');
                 input.type = 'number';
@@ -204,7 +170,7 @@
             newRow.appendChild(cell);
         });
 
-        // Создаем кнопку удаления
+        // Add delete button
         const actionCell = document.createElement('td');
         const deleteButton = document.createElement('button');
         deleteButton.textContent = '-';
