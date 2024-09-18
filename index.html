@@ -71,7 +71,7 @@
     </style>
 </head>
 <body>
-<h3>Заполните таблицу (для водонагревателей, бочек, садовых тачек, указывается только объем)</h3>
+<h3>Заполните таблицу</h3>
 <table border="1" id="data-table" class="data-table" style="width:30%">
     <thead>
     <tr>
@@ -84,7 +84,7 @@
     </tr>
     </thead>
     <tbody id="table-body">
-    <!-- Строки будут создаваться динамически здесь -->
+    <!-- Rows will be created dynamically here -->
     </tbody>
 </table>
 
@@ -114,7 +114,8 @@
         "waterheater": "водонагреватель"
     };
 
-    function addRow() {
+    // Function to add a new row
+    function addRow(name = '', depth = '', width = '', height = '', weight = '', volume = '') {
         const tableBody = document.getElementById('table-body');
         const newRow = document.createElement('tr');
 
@@ -126,12 +127,18 @@
                     const option = document.createElement('option');
                     option.value = key;
                     option.textContent = translations[key];
+                    if (key === name) option.selected = true; // Set selected option
                     select.appendChild(option);
                 });
                 cell.appendChild(select);
             } else {
                 const input = document.createElement('input');
                 input.type = 'number';
+                input.value = column === 'depth' ? depth : 
+                              column === 'width' ? width :
+                              column === 'height' ? height :
+                              column === 'weight' ? weight :
+                              column === 'volume' ? volume : '';
                 cell.appendChild(input);
             }
             newRow.appendChild(cell);
@@ -140,6 +147,7 @@
         tableBody.appendChild(newRow);
     }
 
+    // Function to send data
     function sendData() {
         const data = [];
         const tableRows = document.querySelectorAll('#table-body tr');
@@ -158,63 +166,26 @@
 
         const tg = window.Telegram.WebApp;
         tg.sendData(JSON.stringify(data));
-        tg.close()
+        tg.close();
     }
 
-    // Sample data processing (if needed)
+    // Parse data from URL (if any) and initialize the table
     const queryString = window.location.search;
     const urlParams = new URLSearchParams(queryString);
     const dataString = urlParams.get('data');
 
-    console.log("urlParams: ", urlParams);
-    console.log("dataString: ", dataString);
-
     const dataArray = dataString ? dataString.split(',') : [];
 
-    console.log("dataArray: ", dataArray);
-
-    const data = [];
-    for (let i = 0; i < dataArray.length; i+=6) {
-        var dict = {
-          "name": translations[dataArray[i]],
-          "depth": dataArray[i + 1],
-          "width": dataArray[i + 2],
-          "height": dataArray[i + 3],
-          "weight": dataArray[i + 4],
-          "volume": dataArray[i + 5]
-        };
-        data.push(dict);
+    // Populate table with recognized objects
+    for (let i = 0; i < dataArray.length; i += 6) {
+        const name = dataArray[i];
+        const depth = dataArray[i + 1] !== '-1' ? dataArray[i + 1] : '';
+        const width = dataArray[i + 2] !== '-1' ? dataArray[i + 2] : '';
+        const height = dataArray[i + 3] !== '-1' ? dataArray[i + 3] : '';
+        const weight = dataArray[i + 4] !== '-1' ? dataArray[i + 4] : '';
+        const volume = dataArray[i + 5] !== '-1' ? dataArray[i + 5] : '';
+        addRow(name, depth, width, height, weight, volume);
     }
-
-    console.log("data: ", data);
-
-    const tableBody = document.getElementById('table-body');
-    data.forEach(item => {
-        const newRow = document.createElement('tr');
-
-        columns.forEach(column => {
-            const cell = document.createElement('td');
-            if (column === 'name') {
-                const select = document.createElement('select');
-                Object.keys(translations).forEach(key => {
-                    const option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = translations[key];
-                    if (key === item["name"]) option.selected = true;
-                    select.appendChild(option);
-                });
-                cell.appendChild(select);
-            } else {
-                const input = document.createElement('input');
-                input.type = 'number';
-                input.value = item[column] !== -1 ? item[column] : '';
-                cell.appendChild(input);
-            }
-            newRow.appendChild(cell);
-        });
-
-        tableBody.appendChild(newRow);
-    });
 </script>
 </body>
 </html>
