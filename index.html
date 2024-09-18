@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"/>
-    <title>Object Data</title>
+    <title>Telegram Mini App Data</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         function setThemeClass() {
@@ -72,19 +72,19 @@
 </head>
 <body>
 <h3>Заполните таблицу (для водонагревателей, бочек, садовых тачек, указывается только объем)</h3>
-<table border="1" id="data-table" class="data-table" style="width:50%">
+<table border="1" id="data-table" class="data-table" style="width:30%">
     <thead>
     <tr>
         <th>Объект</th>
-        <th>Глубина, см</th>
-        <th>Ширина, см</th>
-        <th>Высота, см</th>
-        <th>Вес, кг</th>
+        <th>Глубина, мм</th>
+        <th>Ширина, мм</th>
+        <th>Высота, мм</th>
+        <th>Вес, г</th>
         <th>Объем, литров</th>
     </tr>
     </thead>
     <tbody id="table-body">
-    <!-- Rows will be dynamically created here -->
+    <!-- Строки будут создаваться динамически здесь -->
     </tbody>
 </table>
 
@@ -109,26 +109,19 @@
         "washer": "стиральная машина",
         "gas_stove": "газовая плита",
         "radiator": "радиатор",
-        "ZIL": "ЗИЛ",
         "cart": "садовая тачка",
         "waterheater": "водонагреватель"
     };
-
+    
     function addRow() {
         const tableBody = document.getElementById('table-body');
         const newRow = document.createElement('tr');
 
         columns.forEach(column => {
             const cell = document.createElement('td');
-            if (column === 'name') {
-                const input = document.createElement('input');
-                input.type = 'text';
-                cell.appendChild(input);
-            } else {
-                const input = document.createElement('input');
-                input.type = 'number';
-                cell.appendChild(input);
-            }
+            const input = document.createElement('input');
+            input.type = (column === 'name') ? 'text' : 'number';
+            cell.appendChild(input);
             newRow.appendChild(cell);
         });
 
@@ -142,7 +135,7 @@
             const cells = row.querySelectorAll('td');
             const rowData = {};
             cells.forEach((cell, index) => {
-                rowData[columns[index]] = (cell.querySelector('input') || {}).value || '';
+                rowData[columns[index]] = ((cell.querySelector('input') || {}).value || 0.0);
             });
             data.push(rowData);
         });
@@ -152,24 +145,45 @@
         tg.close();
     }
 
-    // Example to load data into the table (Modify according to your needs)
-    const data = [
-        {"name": "ЗИЛ", "depth": "", "width": "", "height": "", "weight": "", "volume": ""}
-    ];
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const dataString = urlParams.get('data');
 
+    console.log("urlParams: ", urlParams);
+    console.log("dataString: ", dataString);
+
+    // Распарсить JSON-строку в массив
+    const dataArray = dataString.split(',');
+
+    console.log("dataArray: ", dataArray);
+
+    const data = [];
+    for (let i = 0; i < dataArray.length; i += 6) {
+        var dict = {
+            "name": translations[dataArray[i]],
+            "depth": dataArray[i + 1],
+            "width": dataArray[i + 2],
+            "height": dataArray[i + 3],
+            "weight": dataArray[i + 4],
+            "volume": dataArray[i + 5]
+        };
+        data.push(dict);
+    }
+
+    console.log("data: ", data);
     const tableBody = document.getElementById('table-body');
     data.forEach(item => {
         const newRow = document.createElement('tr');
-
+        
         columns.forEach(column => {
             const cell = document.createElement('td');
             const input = document.createElement('input');
-            input.type = column === 'name' ? 'text' : 'number';
-            input.value = item[column] || '';
+            input.type = (column === 'name') ? 'text' : 'number';
+            input.value = item[column] !== -1 ? item[column] : '';
             cell.appendChild(input);
             newRow.appendChild(cell);
         });
-
+        
         tableBody.appendChild(newRow);
     });
 </script>
