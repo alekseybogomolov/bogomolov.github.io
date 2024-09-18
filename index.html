@@ -2,14 +2,13 @@
 <html lang="en" class="light" style="--tg-viewport-height: 100vh; --tg-viewport-stable-height: 100vh;">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no">
     <title>Telegram Mini App Data</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         function setThemeClass() {
             document.documentElement.className = Telegram.WebApp.colorScheme;
         }
-
         Telegram.WebApp.onEvent('themeChanged', setThemeClass);
         setThemeClass();
     </script>
@@ -19,23 +18,19 @@
             border-collapse: collapse;
             margin-bottom: 20px;
         }
-
         .data-table th, .data-table td {
             border: 1px solid #ddd;
             padding: 10px;
         }
-
         .data-table th {
             background: #f4f4f4;
             text-align: left;
         }
-
         .add-button, .send-button {
             margin: 10px;
             padding: 10px;
             cursor: pointer;
         }
-
         .send-button {
             font-weight: bold;
         }
@@ -47,9 +42,9 @@
         <thead>
             <tr>
                 <th>Объект</th>
-                <th>Глубина, cм</th>
-                <th>Ширина, cм</th>
-                <th>Высота, cм</th>
+                <th>Глубина, см</th>
+                <th>Ширина, см</th>
+                <th>Высота, см</th>
                 <th>Вес, кг</th>
                 <th>Объем, литров</th>
                 <th>Действия</th>
@@ -59,7 +54,6 @@
             <!-- Rows will be dynamically added here -->
         </tbody>
     </table>
-
     <button class="add-button" onclick="addRow()">Добавить строку</button>
     <button class="send-button" onclick="sendData()">Отправить данные</button>
 
@@ -81,7 +75,7 @@
             { "value": "waterheater", "label": "водонагреватель" }
         ];
 
-        // Добавление строки в таблицу
+        // Функция добавления строки в таблицу
         function addRow(data = {}) {
             const tableBody = document.getElementById('table-body');
             const newRow = document.createElement('tr');
@@ -151,15 +145,8 @@
             tg.close();
         }
 
-        // Разбор данных из URL
-        const queryString = window.location.search;
-        const urlParams = new URLSearchParams(queryString);
-        const dataString = urlParams.get('data') || '';
-        
-        // Если есть данные, обрабатываем их и добавляем в таблицу
-        if (dataString) {
-            const dataArray = dataString.split(',');
-            const data = [];
+        // Разбор данных из URL и добавление строк в таблицу
+        function populateTable(dataArray) {
             for (let i = 0; i < dataArray.length; i += 6) {
                 const dict = {
                     "name": dataArray[i],
@@ -169,11 +156,22 @@
                     "weight": dataArray[i + 4],
                     "volume": dataArray[i + 5]
                 };
-                // Добавляем строку в таблицу только если есть значение имени
+                // Добавляем строку в таблицу, если указано имя объекта
                 if (dict.name) {
                     addRow(dict);
                 }
             }
+        }
+
+        // Получаем данные из URL и вызываем функцию для заполнения таблицы
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        const dataString = urlParams.get('data') || '';
+
+        // Если есть данные, разбираем их и заполняем таблицу
+        if (dataString) {
+            const dataArray = dataString.split(',');
+            populateTable(dataArray);
         }
     </script>
 </body>
